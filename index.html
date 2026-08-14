@@ -482,17 +482,17 @@ async function enviarPedido(codigo){
   });
   // text/plain evita o preflight de CORS no Apps Script
   const opcoes = {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:corpo};
+  // Um envio, e so um. Reenviar quando a leitura da resposta falha gerava
+  // pedido duplicado, porque o envio tinha dado certo do lado do Google.
   try{
     const r = await fetch(CONFIG.endpoint, opcoes);
     const j = await r.json();
     return {ok: j.ok === true, motivo: j.erro};
   }catch(e){
-    try{
-      await fetch(CONFIG.endpoint, {...opcoes, mode:'no-cors'});
-      return {ok:true, cego:true};
-    }catch(e2){
-      return {ok:false, motivo:'rede'};
-    }
+    // Chegou aqui sem conseguir ler a resposta. Rodando de arquivo local isso
+    // e normal e o pedido provavelmente entrou; publicado em https, nao.
+    const local = location.protocol === 'file:';
+    return local ? {ok:true, cego:true} : {ok:false, motivo:'rede'};
   }
 }
 
